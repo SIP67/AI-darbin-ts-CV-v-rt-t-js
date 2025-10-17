@@ -1,0 +1,2 @@
+We are looking for a Python developer with experience in data analysis, APIs, and machine learning.
+Required: Python, Pandas, REST APIs, Git.
