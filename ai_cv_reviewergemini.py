@@ -12,7 +12,7 @@ import requests
 # Konfigurācija
 # LŪDZU AIZSTĀJIET SIMULĒTO ATSLĒGU AR SAVU GOOGLE/GEMINI API ATSLĒGU.
 # IETEICAMS IZMANTOT python-dotenv VAI VIDĒS MAINĪGOS DROŠĪBAS DĒĻ.
-GEMINI_API_KEY = "AIzaSyCgFxuuadCOyOzs9iusC3t5Z0AI-t-JfAA" 
+GEMINI_API_KEY = "YOUR_API_KEY" 
 if not GEMINI_API_KEY or GEMINI_API_KEY.startswith("AIzaSy_"):
     # Mēģinām nolasīt no vides mainīgā, ja atslēga nav iestatīta
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -257,4 +257,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
