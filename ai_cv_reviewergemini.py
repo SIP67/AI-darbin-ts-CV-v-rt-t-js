@@ -4,27 +4,21 @@ import textwrap
 import time
 from pathlib import Path
 
-# Šim skriptam ir nepieciešama 'requests' bibliotēka, lai veiktu REST API pieprasījumus.
-# Varat to instalēt ar 'pip install requests python-dotenv'
 import requests
 
 
-# Konfigurācija
-# LŪDZU AIZSTĀJIET SIMULĒTO ATSLĒGU AR SAVU GOOGLE/GEMINI API ATSLĒGU.
-# IETEICAMS IZMANTOT python-dotenv VAI VIDĒS MAINĪGOS DROŠĪBAS DĒĻ.
+
 GEMINI_API_KEY = "YOUR_API_KEY" 
 if not GEMINI_API_KEY or GEMINI_API_KEY.startswith("AIzaSy_"):
-    # Mēģinām nolasīt no vides mainīgā, ja atslēga nav iestatīta
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 if not GEMINI_API_KEY:
     raise RuntimeError("Lūdzu iestatiet GEMINI_API_KEY vides mainīgo ar jūsu API atslēgu.")
 
-# Mainīgie: API endpoint un modelis. Pielāgots Gemini Flash 2.5.
-# Ja izmantojat Google GenAI SDK, šis API_URL nebūs vajadzīgs!
+
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 MODEL_NAME = "gemini-2.5-flash"
-TEMPERATURE = 0.2  # <= 0.3 kā prasīts 
+TEMPERATURE = 0.2 
 
 BASE_DIR = Path.cwd()
 SAMPLE_DIR = BASE_DIR / "sample_inputs"
@@ -33,10 +27,10 @@ PROMPT_DIR = BASE_DIR / "prompts"
 OUTPUT_DIR.mkdir(exist_ok=True)
 PROMPT_DIR.mkdir(exist_ok=True)
 
-JD_PATH = SAMPLE_DIR / "jd.txt" # Darba apraksta fails [cite: 5]
-CV_PATHS = [SAMPLE_DIR / f"cv{i}.txt" for i in (1, 2, 3)] # Kandidātu CV faili [cite: 5]
+JD_PATH = SAMPLE_DIR / "jd.txt" 
+CV_PATHS = [SAMPLE_DIR / f"cv{i}.txt" for i in (1, 2, 3)] 
 
-# JSON schema keys (HR fokuss) [cite: 13, 15, 16, 17, 20, 23]
+
 REQUIRED_KEYS = ["match_score", "summary", "strengths", "missing_requirements", "verdict"]
 
 
@@ -48,7 +42,6 @@ def read_text(path: Path) -> str:
 
 def build_prompt(jd_text: str, cv_text: str, candidate_label: str = "Candidate") -> str:
     """Sagatavo oriģinālu Gemini promptu ar stingrām instrukcijām."""
-    # NOTE: izmantojiet .format tālāk. Saglabājiet burtiskās iekavas JSON shēmā dubultotas ({{ }})
     instruct = textwrap.dedent("""
     You are a hiring-focused assistant. Compare a Job Description (JD) with a candidate CV and
     produce a single JSON object (no extra text, no commentary) that assesses fit.
@@ -106,7 +99,7 @@ def call_gemini(prompt: str) -> dict:
         "Content-Type": "application/json",
     }
 
-    # KOREKTAIS PAYLOAD GOOGLE GEMINI REST API ar GenerationConfig
+   
     payload = {
         "contents": [
             {
@@ -117,9 +110,9 @@ def call_gemini(prompt: str) -> dict:
         ],
         "generationConfig": {
             "temperature": TEMPERATURE,
-            # Stingri pieprasīt JSON MimeType
+            
             "responseMimeType": "application/json",
-            # Pievienot JSON shēmu, lai vadītu modeļa izvadi
+            
             "responseSchema": {
                 "type": "object",
                 "properties": {
@@ -150,14 +143,13 @@ def call_gemini(prompt: str) -> dict:
 
     data = resp.json()
 
-    # Parsējam atbildi. Tā kā pieprasām responseMimeType: application/json, 
-    # atbildei vajadzētu būt tīram JSON, taču tā joprojām atrodas zem content.parts.text
+    
     try:
         json_text = data['candidates'][0]['content']['parts'][0]['text'].strip()
     except (KeyError, IndexError):
         raise RuntimeError("Nevarēja atrast teksta atbildi Gemini API atbildē. Pilns API atbildes saturs:\n" + json.dumps(data, ensure_ascii=False, indent=2))
 
-    # Parse JSON
+
     try:
         parsed = json.loads(json_text)
     except json.JSONDecodeError as e:
@@ -173,7 +165,7 @@ def validate_hr_json(obj: dict) -> bool:
     for k in REQUIRED_KEYS:
         if k not in obj:
             return False
-    # Pamata tipu pārbaudes
+
     if not isinstance(obj.get("match_score"), int) or not (0 <= obj.get("match_score") <= 100):
         return False
     if not isinstance(obj.get("summary"), str):
@@ -209,27 +201,27 @@ def generate_report_md(json_obj: dict, candidate_label: str, out_path: Path):
 def main():
     """Galvenā izpildes loģika, atkārtojot 2.-5. soli visiem CV[cite: 12]."""
     try:
-        jd_text = read_text(JD_PATH) # Sākam ar 1. soli [cite: 7]
+        jd_text = read_text(JD_PATH) 
     except FileNotFoundError:
         print(f"Kļūda: Darba apraksta fails '{JD_PATH}' (jd.txt) nav atrasts. Lūdzu pārliecinieties, ka 'sample_inputs/jd.txt' pastāv.")
         return
 
     for i, cv_path in enumerate(CV_PATHS, start=1):
         try:
-            cv_text = read_text(cv_path) # Turpinām 1. soli [cite: 7]
+            cv_text = read_text(cv_path) 
         except FileNotFoundError:
             print(f"Kļūda: CV fails '{cv_path}' nav atrasts. Izlaižam šo kandidātu.")
             continue
             
         label = f"Candidate {i}"
 
-        # 2. solis: Sagatavo prompt.md 
+       
         prompt_text = build_prompt(jd_text, cv_text, candidate_label=label)
         prompt_file = PROMPT_DIR / f"prompt_cv{i}.md"
         save_prompt_md(prompt_text, prompt_file)
         print(f"Saved prompt for {label} -> {prompt_file}")
 
-        # 3. solis: Izsauc Gemini Flash 2.5 
+     
         print(f"Calling model {MODEL_NAME} for {label}... (this may take a few seconds)")
         try:
             model_json = call_gemini(prompt_text)
@@ -237,7 +229,7 @@ def main():
             print(f"Error while calling model for {label}: {e}")
             continue
 
-        # 4. solis: Saglabā JSON atbildi [cite: 10]
+    
         if not validate_hr_json(model_json):
             print(f"Warning: model JSON for {label} failed validation. Saving raw response for inspection.")
             (OUTPUT_DIR / f"cv{i}_raw.json").write_text(json.dumps(model_json, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -247,15 +239,16 @@ def main():
         out_json_path.write_text(json.dumps(model_json, ensure_ascii=False, indent=2), encoding='utf-8')
         print(f"Saved JSON result for {label} -> {out_json_path}")
 
-        # 5. solis: Ģenerē īsu pārskatu [cite: 11]
+   
         report_path = OUTPUT_DIR / f"cv{i}_report.md"
         generate_report_md(model_json, label, report_path)
         print(f"Saved report for {label} -> {report_path}")
 
-        # 6. solis: Atkārto nākamajam CV (cikls to nodrošina)
+       
         time.sleep(1)
 
 
 if __name__ == '__main__':
 
     main()
+
