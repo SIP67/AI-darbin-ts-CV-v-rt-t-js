@@ -35,13 +35,11 @@ REQUIRED_KEYS = ["match_score", "summary", "strengths", "missing_requirements", 
 
 
 def read_text(path: Path) -> str:
-    """Nolasa teksta failu."""
     with path.open("r", encoding="utf-8") as f:
         return f.read().strip()
 
 
 def build_prompt(jd_text: str, cv_text: str, candidate_label: str = "Candidate") -> str:
-    """Sagatavo oriģinālu Gemini promptu ar stingrām instrukcijām."""
     instruct = textwrap.dedent("""
     You are a hiring-focused assistant. Compare a Job Description (JD) with a candidate CV and
     produce a single JSON object (no extra text, no commentary) that assesses fit.
@@ -87,12 +85,10 @@ def build_prompt(jd_text: str, cv_text: str, candidate_label: str = "Candidate")
 
 
 def save_prompt_md(text: str, path: Path):
-    """Saglabā prompt tekstu .md failā."""
     path.write_text(text, encoding="utf-8")
 
 
 def call_gemini(prompt: str) -> dict:
-    """Izsauc Gemini Flash 2.5 REST API, izmantojot stingru JSON izvades shēmu."""
     url_with_key = f"{API_URL}?key={GEMINI_API_KEY}"
     
     headers = {
@@ -159,7 +155,6 @@ def call_gemini(prompt: str) -> dict:
 
 
 def validate_hr_json(obj: dict) -> bool:
-    """Validē saņemto JSON atbilstoši uzdevuma prasībām."""
     if not isinstance(obj, dict):
         return False
     for k in REQUIRED_KEYS:
@@ -180,7 +175,6 @@ def validate_hr_json(obj: dict) -> bool:
 
 
 def generate_report_md(json_obj: dict, candidate_label: str, out_path: Path):
-    """Ģenerē īsu pārskatu (Markdown) no JSON atbildes."""
     md = []
     md.append(f"# CV Review — {candidate_label} (Gemini Flash 2.5)\n")
     md.append(f"**Match score:** {json_obj.get('match_score')} / 100  ")
@@ -199,7 +193,6 @@ def generate_report_md(json_obj: dict, candidate_label: str, out_path: Path):
 
 
 def main():
-    """Galvenā izpildes loģika, atkārtojot 2.-5. soli visiem CV[cite: 12]."""
     try:
         jd_text = read_text(JD_PATH) 
     except FileNotFoundError:
@@ -251,4 +244,5 @@ def main():
 if __name__ == '__main__':
 
     main()
+
 
